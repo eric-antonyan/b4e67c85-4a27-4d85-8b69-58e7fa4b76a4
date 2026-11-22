@@ -69,8 +69,8 @@ def cover_fit(img, size):
     return img.crop((left, top, left + tw, top + th))
 
 
-def bottom_scrim(size, bottom_frac=0.55, bottom_strength=0.9,
-                 top_frac=0.14, top_strength=0.40):
+def bottom_scrim(size, bottom_frac=0.60, bottom_strength=0.96,
+                 top_frac=0.15, top_strength=0.42):
     """Black RGBA scrim: dark at bottom (headline) and a touch at top (wordmark)."""
     w, h = size
     mask = Image.new("L", size, 0)
