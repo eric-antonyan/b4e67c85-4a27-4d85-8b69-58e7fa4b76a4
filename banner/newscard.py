@@ -259,9 +259,9 @@ def generate_card(spec: CardSpec) -> Image.Image:
     wm = scaled_to_width(wordmark, w * 0.22)
     wm_cx = (w - wm.width) / 2
     gap = round(h * 0.02)
-    img = place(img, wm, (wm_cx, gap), ov)                      # top: ink top at 2%
+    img = place(img, wm, (wm_cx, gap), ov)                      # top: overlay-able
     foot_y = h - gap - wm.height                                # bottom: ink bottom at 98%
-    img = place(img, wm, (wm_cx, foot_y), ov)
+    img = place(img, wm, (wm_cx, foot_y), False)               # bottom: always solid
 
     # faint center watermark
     if spec.watermark:
