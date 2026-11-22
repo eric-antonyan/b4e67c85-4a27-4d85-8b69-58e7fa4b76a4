@@ -89,8 +89,11 @@ def bottom_scrim(size, bottom_frac=0.55, bottom_strength=0.9,
 
 
 def load_asset(path, color=(255, 255, 255)):
-    """Load a white/transparent PNG; tint it if color isn't white."""
+    """Load a white/transparent PNG, trim transparent padding, tint if needed."""
     im = Image.open(path).convert("RGBA")
+    bbox = im.getchannel("A").getbbox()
+    if bbox:
+        im = im.crop(bbox)
     if color != (255, 255, 255):
         r, g, b, a = im.split()
         tint = Image.new("RGBA", im.size, color + (0,))
@@ -214,12 +217,13 @@ def generate_card(spec: CardSpec) -> Image.Image:
     wordmark = load_asset(spec.wordmark_path, spec.color)
     mark = load_asset(spec.mark_path, spec.color)
 
-    # top + bottom wordmark, centered. Reference ink width ~22.6%, vertical
-    # centers at ~2.5% (top) and ~95% (bottom); the PNG has ~10% side padding.
-    wm = scaled_to_width(wordmark, w * 0.25)
+    # top + bottom wordmark (assets are now trimmed to ink). Reference: ink
+    # width ~22% of W, with a ~2% gap above the top and below the bottom.
+    wm = scaled_to_width(wordmark, w * 0.22)
     wm_cx = (w - wm.width) / 2
-    img = paste_alpha(img, wm, (wm_cx, round(h * 0.029 - wm.height / 2)))
-    foot_y = round(h * 0.95 - wm.height / 2)
+    gap = round(h * 0.02)
+    img = paste_alpha(img, wm, (wm_cx, gap))                    # top: ink top at 2%
+    foot_y = h - gap - wm.height                                # bottom: ink bottom at 98%
     img = paste_alpha(img, wm, (wm_cx, foot_y))
 
     # faint center watermark
@@ -230,7 +234,7 @@ def generate_card(spec: CardSpec) -> Image.Image:
         img = paste_alpha(img, faded, ((w - big.width) / 2, (h - big.height) / 2))
 
     # top-right pixel chevron mark (reference ink ~5.5%, right edge ~96.9%)
-    cm = scaled_to_width(mark, w * 0.068)
+    cm = scaled_to_width(mark, w * 0.055)
     img = paste_alpha(img, cm, (round(w * 0.969) - cm.width, round(h * 0.03)))
 
     # headline, bottom-left, above the footer wordmark — FIXED size, wraps
