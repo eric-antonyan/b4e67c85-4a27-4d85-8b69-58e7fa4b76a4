@@ -32,7 +32,9 @@ from newscard import (
 )
 
 
-def para_height(draw, paras, col_w, body_size, head_lh_ratio=1.45, gap_ratio=0.62):
+LH_RATIO = 1.40  # body line height / font size
+
+def para_height(draw, paras, col_w, body_size, head_lh_ratio=LH_RATIO, gap_ratio=0.62):
     """Total height of the body block for a given body size (for auto-fit)."""
     total = 0
     for i, (style, _) in enumerate(paras):
@@ -56,10 +58,10 @@ class TextPageSpec:
     paragraphs: list          # list of (style, text); style in {"body","emphasis"}
     size: tuple = (1080, 1350)
     grayscale: bool = True
-    darken: float = 0.70
+    darken: float = 0.74
     color: tuple = (255, 255, 255)
     body_color: tuple = (232, 232, 234)
-    justify: bool = True
+    justify: bool = False     # reference body is left-aligned with natural spacing
     wordmark_path: str = os.path.join(ASSET_DIR, "wordmark-white.png")
     mark_path: str = os.path.join(ASSET_DIR, "mark-white.png")
 
@@ -129,7 +131,7 @@ def generate_textpage(spec: TextPageSpec) -> Image.Image:
     y = body_top
     for i, (style, text) in enumerate(spec.paragraphs):
         g = _para_glyphs(style, body_size)
-        lh = round(body_size * 1.45)
+        lh = round(body_size * LH_RATIO)
         if style == "emphasis":
             fill = spec.color + (255,)
             text = text.upper()
@@ -164,9 +166,10 @@ def main():
     src.add_argument("--body", help="Body text; paragraphs split on blank lines")
     src.add_argument("--body-file", help="File with the body text")
     ap.add_argument("--size", default="1080x1350")
-    ap.add_argument("--darken", type=float, default=0.70)
+    ap.add_argument("--darken", type=float, default=0.74)
     ap.add_argument("--no-grayscale", action="store_true")
-    ap.add_argument("--no-justify", action="store_true")
+    ap.add_argument("--justify", action="store_true",
+                    help="Justify body to full width (default: left-aligned, like the reference)")
     ap.add_argument("--color", default="#ffffff")
     ap.add_argument("--out", default="out/textpage.png")
     args = ap.parse_args()
@@ -180,7 +183,7 @@ def main():
     spec = TextPageSpec(
         image=args.image, heading=args.heading, paragraphs=parse_body(body),
         size=(w, h), grayscale=not args.no_grayscale, darken=args.darken,
-        color=hex_to_rgb(args.color), justify=not args.no_justify,
+        color=hex_to_rgb(args.color), justify=args.justify,
     )
     img = generate_textpage(spec)
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
