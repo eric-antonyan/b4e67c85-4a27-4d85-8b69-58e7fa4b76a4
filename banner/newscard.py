@@ -37,6 +37,8 @@ ARM = {  # Montserrat Armenian covers Armenian + Latin + digits + punctuation
     "extrabold": "Montserratarm-ExtraBold.otf",
     "bold": "Montserratarm-Bold.otf",
     "semibold": "Montserratarm-SemiBold.otf",
+    "medium": "Montserratarm-Medium.otf",
+    "regular": "Montserratarm-Regular.otf",
 }
 _DEJAVU = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
