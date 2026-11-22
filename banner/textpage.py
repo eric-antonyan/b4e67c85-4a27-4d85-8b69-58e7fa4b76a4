@@ -48,7 +48,7 @@ def para_height(draw, paras, col_w, body_size, head_lh_ratio=LH_RATIO, gap_ratio
 
 
 def _para_glyphs(style, size):
-    return Glyphs(size, "bold" if style == "emphasis" else "medium")
+    return Glyphs(size, "bold" if style == "emphasis" else "regular")
 
 
 @dataclass
