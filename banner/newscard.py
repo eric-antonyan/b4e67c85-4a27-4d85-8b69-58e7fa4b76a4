@@ -166,15 +166,17 @@ def wrap_g(draw, text, g, max_w):
     return lines
 
 
-def fit_headline(draw, text, max_w, max_h, start, weight="black", min_size=26):
-    size = start
-    while size >= min_size:
-        g = Glyphs(size, weight)
+def fit_headline(draw, text, max_w, max_h, size, weight="black", min_size=22):
+    """Lay out at a FIXED size (like the reference); only shrink if it would
+    overflow the available height or a single word can't fit the width."""
+    s = size
+    while s >= min_size:
+        g = Glyphs(s, weight)
         lines = wrap_g(draw, text, g, max_w)
-        lh = round(size * 1.14)
+        lh = round(s * 1.14)
         if len(lines) * lh <= max_h and all(g.width(draw, ln) <= max_w for ln in lines):
             return g, lines, lh
-        size -= 2
+        s -= 2
     g = Glyphs(min_size, weight)
     return g, wrap_g(draw, text, g, max_w), round(min_size * 1.14)
 
@@ -193,6 +195,7 @@ class CardSpec:
     wordmark_path: str = os.path.join(ASSET_DIR, "wordmark-white.png")
     mark_path: str = os.path.join(ASSET_DIR, "mark-white.png")
     weight: str = "black"
+    headline_size: int = 0  # 0 = auto (W * 0.037, matching the reference)
 
 
 def generate_card(spec: CardSpec) -> Image.Image:
@@ -211,32 +214,33 @@ def generate_card(spec: CardSpec) -> Image.Image:
     wordmark = load_asset(spec.wordmark_path, spec.color)
     mark = load_asset(spec.mark_path, spec.color)
 
-    # top + bottom wordmark, centered
-    wm = scaled_to_width(wordmark, w * 0.34)
-    top_y = round(h * 0.03)
+    # top + bottom wordmark, centered (reference: ~22% of width)
+    wm = scaled_to_width(wordmark, w * 0.22)
+    top_y = round(h * 0.032)
     img = paste_alpha(img, wm, ((w - wm.width) / 2, top_y))
-    foot_y = h - round(h * 0.03) - wm.height
+    foot_y = h - round(h * 0.032) - wm.height
     img = paste_alpha(img, wm, ((w - wm.width) / 2, foot_y))
 
     # faint center watermark
     if spec.watermark:
-        big = scaled_to_width(wordmark, w * 0.46)
+        big = scaled_to_width(wordmark, w * 0.40)
         faded = Image.new("RGBA", big.size, (0, 0, 0, 0))
-        faded = Image.blend(faded, big, 0.14)
+        faded = Image.blend(faded, big, 0.13)
         img = paste_alpha(img, faded, ((w - big.width) / 2, (h - big.height) / 2))
 
-    # top-right pixel chevron mark
-    cm = scaled_to_width(mark, w * 0.055)
-    img = paste_alpha(img, cm, (w - margin - cm.width, round(h * 0.032)))
+    # top-right pixel chevron mark (reference: ~5.7% of width)
+    cm = scaled_to_width(mark, w * 0.057)
+    img = paste_alpha(img, cm, (w - margin - cm.width, round(h * 0.034)))
 
-    # headline, bottom-left, above the footer wordmark
+    # headline, bottom-left, above the footer wordmark — FIXED size, wraps
     overlay = Image.new("RGBA", spec.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-    head_bottom = foot_y - round(h * 0.028)
-    head_top_limit = round(h * 0.50)
+    head_bottom = foot_y - round(h * 0.045)
+    head_top_limit = round(h * 0.42)
+    size = spec.headline_size or round(w * 0.037)
     g, lines, lh = fit_headline(
         draw, spec.headline.upper(), w - 2 * margin,
-        head_bottom - head_top_limit, start=round(h * 0.055), weight=spec.weight,
+        head_bottom - head_top_limit, size=size, weight=spec.weight,
     )
     y = head_bottom - len(lines) * lh
     for ln in lines:
@@ -259,6 +263,8 @@ def main():
     ap.add_argument("--color", default="#ffffff", help="Tint for wordmark/mark/text")
     ap.add_argument("--no-watermark", action="store_true")
     ap.add_argument("--weight", default="black", choices=list(ARM))
+    ap.add_argument("--headline-size", type=int, default=0,
+                    help="Fixed headline px (default auto = width*0.037, like the reference)")
     ap.add_argument("--wordmark", default=os.path.join(ASSET_DIR, "wordmark-white.png"))
     ap.add_argument("--mark", default=os.path.join(ASSET_DIR, "mark-white.png"))
     ap.add_argument("--out", default="out/card.png")
@@ -270,6 +276,7 @@ def main():
         grayscale=args.grayscale, darken=args.darken, color=hex_to_rgb(args.color),
         watermark=not args.no_watermark, weight=args.weight,
         wordmark_path=args.wordmark, mark_path=args.mark,
+        headline_size=args.headline_size,
     )
     img = generate_card(spec)
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
