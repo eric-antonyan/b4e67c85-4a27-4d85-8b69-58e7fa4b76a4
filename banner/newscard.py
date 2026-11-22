@@ -202,8 +202,7 @@ class CardSpec:
     mark_path: str = os.path.join(ASSET_DIR, "mark-white.png")
     weight: str = "black"
     headline_size: int = 0  # 0 = auto (W * 0.037, matching the reference)
-    justify: bool = True    # stretch each line (but the last) to full width
-    max_justify_stretch: float = 0.6  # don't justify a line needing >60% extra space
+    justify: bool = False   # left-align by default; True stretches lines to full width
 
 
 def generate_card(spec: CardSpec) -> Image.Image:
@@ -283,8 +282,8 @@ def main():
     ap.add_argument("--weight", default="black", choices=list(ARM))
     ap.add_argument("--headline-size", type=int, default=0,
                     help="Fixed headline px (default auto = width*0.037, like the reference)")
-    ap.add_argument("--no-justify", action="store_true",
-                    help="Left-align the headline instead of full-width justify")
+    ap.add_argument("--justify", action="store_true",
+                    help="Stretch headline lines to full width (default: left-aligned)")
     ap.add_argument("--wordmark", default=os.path.join(ASSET_DIR, "wordmark-white.png"))
     ap.add_argument("--mark", default=os.path.join(ASSET_DIR, "mark-white.png"))
     ap.add_argument("--out", default="out/card.png")
@@ -296,7 +295,7 @@ def main():
         grayscale=args.grayscale, darken=args.darken, color=hex_to_rgb(args.color),
         watermark=not args.no_watermark, weight=args.weight,
         wordmark_path=args.wordmark, mark_path=args.mark,
-        headline_size=args.headline_size, justify=not args.no_justify,
+        headline_size=args.headline_size, justify=args.justify,
     )
     img = generate_card(spec)
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
