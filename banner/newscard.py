@@ -214,12 +214,13 @@ def generate_card(spec: CardSpec) -> Image.Image:
     wordmark = load_asset(spec.wordmark_path, spec.color)
     mark = load_asset(spec.mark_path, spec.color)
 
-    # top + bottom wordmark, centered (reference: ~22% of width)
-    wm = scaled_to_width(wordmark, w * 0.22)
-    top_y = round(h * 0.032)
-    img = paste_alpha(img, wm, ((w - wm.width) / 2, top_y))
-    foot_y = h - round(h * 0.032) - wm.height
-    img = paste_alpha(img, wm, ((w - wm.width) / 2, foot_y))
+    # top + bottom wordmark, centered. Reference ink width ~22.6%, vertical
+    # centers at ~2.5% (top) and ~95% (bottom); the PNG has ~10% side padding.
+    wm = scaled_to_width(wordmark, w * 0.25)
+    wm_cx = (w - wm.width) / 2
+    img = paste_alpha(img, wm, (wm_cx, round(h * 0.029 - wm.height / 2)))
+    foot_y = round(h * 0.95 - wm.height / 2)
+    img = paste_alpha(img, wm, (wm_cx, foot_y))
 
     # faint center watermark
     if spec.watermark:
@@ -228,9 +229,9 @@ def generate_card(spec: CardSpec) -> Image.Image:
         faded = Image.blend(faded, big, 0.13)
         img = paste_alpha(img, faded, ((w - big.width) / 2, (h - big.height) / 2))
 
-    # top-right pixel chevron mark (reference: ~5.7% of width)
-    cm = scaled_to_width(mark, w * 0.057)
-    img = paste_alpha(img, cm, (w - margin - cm.width, round(h * 0.034)))
+    # top-right pixel chevron mark (reference ink ~5.5%, right edge ~96.9%)
+    cm = scaled_to_width(mark, w * 0.068)
+    img = paste_alpha(img, cm, (round(w * 0.969) - cm.width, round(h * 0.03)))
 
     # headline, bottom-left, above the footer wordmark — FIXED size, wraps
     overlay = Image.new("RGBA", spec.size, (0, 0, 0, 0))
