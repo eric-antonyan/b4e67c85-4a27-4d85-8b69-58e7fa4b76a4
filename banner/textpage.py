@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from PIL import Image, ImageDraw, ImageOps
 
 from newscard import (
-    ASSET_DIR, Glyphs, cover_fit, hex_to_rgb, load_asset, paste_alpha,
+    ASSET_DIR, Glyphs, cover_fit, hex_to_rgb, load_asset, place,
     scaled_to_width, wrap_g,
 )
 
@@ -62,6 +62,7 @@ class TextPageSpec:
     color: tuple = (255, 255, 255)
     body_color: tuple = (232, 232, 234)
     justify: bool = False     # reference body is left-aligned with natural spacing
+    overlay_assets: bool = False
     wordmark_path: str = os.path.join(ASSET_DIR, "wordmark-white.png")
     mark_path: str = os.path.join(ASSET_DIR, "mark-white.png")
 
@@ -97,13 +98,14 @@ def generate_textpage(spec: TextPageSpec) -> Image.Image:
     # brand frame (same as the card)
     wordmark = load_asset(spec.wordmark_path, spec.color)
     mark = load_asset(spec.mark_path, spec.color)
+    ov = spec.overlay_assets
     wm = scaled_to_width(wordmark, w * 0.22)
     gap = round(h * 0.02)
-    img = paste_alpha(img, wm, ((w - wm.width) / 2, gap))
+    img = place(img, wm, ((w - wm.width) / 2, gap), ov)
     bot_wm_top = h - gap - wm.height
-    img = paste_alpha(img, wm, ((w - wm.width) / 2, bot_wm_top))
+    img = place(img, wm, ((w - wm.width) / 2, bot_wm_top), ov)
     cm = scaled_to_width(mark, w * 0.055)
-    img = paste_alpha(img, cm, (round(w * 0.969) - cm.width, round(h * 0.03)))
+    img = place(img, cm, (round(w * 0.969) - cm.width, round(h * 0.03)), ov)
 
     overlay = Image.new("RGBA", spec.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
@@ -170,6 +172,8 @@ def main():
     ap.add_argument("--no-grayscale", action="store_true")
     ap.add_argument("--justify", action="store_true",
                     help="Justify body to full width (default: left-aligned, like the reference)")
+    ap.add_argument("--overlay", action="store_true",
+                    help="Blend wordmark/mark into the photo (Overlay blend mode)")
     ap.add_argument("--color", default="#ffffff")
     ap.add_argument("--out", default="out/textpage.png")
     args = ap.parse_args()
@@ -184,6 +188,7 @@ def main():
         image=args.image, heading=args.heading, paragraphs=parse_body(body),
         size=(w, h), grayscale=not args.no_grayscale, darken=args.darken,
         color=hex_to_rgb(args.color), justify=args.justify,
+        overlay_assets=args.overlay,
     )
     img = generate_textpage(spec)
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)

@@ -115,6 +115,35 @@ def paste_alpha(base, overlay_img, xy):
     return Image.alpha_composite(base, layer)
 
 
+def paste_overlay(base, asset, xy):
+    """Composite `asset` onto `base` using the Overlay blend mode (masked by
+    the asset's alpha), so a white mark interacts with the photo instead of
+    sitting as flat opaque white."""
+    import numpy as np
+    x, y = int(round(xy[0])), int(round(xy[1]))
+    bw, bh = base.size
+    aw, ah = asset.size
+    x0, y0 = max(0, x), max(0, y)
+    x1, y1 = min(bw, x + aw), min(bh, y + ah)
+    if x1 <= x0 or y1 <= y0:
+        return base
+    region = base.crop((x0, y0, x1, y1)).convert("RGB")
+    asub = asset.crop((x0 - x, y0 - y, x1 - x, y1 - y)).convert("RGBA")
+    b = np.asarray(region, dtype=np.float32) / 255.0
+    a = np.asarray(asub, dtype=np.float32) / 255.0
+    blend, alpha = a[..., :3], a[..., 3:4]
+    ov = np.where(b < 0.5, 2 * b * blend, 1 - 2 * (1 - b) * (1 - blend))
+    out = np.clip(b * (1 - alpha) + ov * alpha, 0, 1)
+    res = Image.fromarray((out * 255).astype("uint8"), "RGB")
+    base = base.copy()
+    base.paste(res, (x0, y0))
+    return base
+
+
+def place(base, asset, xy, overlay=False):
+    return paste_overlay(base, asset, xy) if overlay else paste_alpha(base, asset, xy)
+
+
 # --- headline text (per-char fallback for anything Montserrat lacks) -------
 
 _NOTDEF: dict = {}
@@ -204,6 +233,7 @@ class CardSpec:
     mark_path: str = os.path.join(ASSET_DIR, "mark-white.png")
     weight: str = "black"
     headline_size: int = 0  # 0 = auto (W * 0.037, matching the reference)
+    overlay_assets: bool = False  # blend wordmark/mark with the photo (Overlay mode)
     justify: bool = False   # left-align by default; True stretches lines to full width
 
 
@@ -225,12 +255,13 @@ def generate_card(spec: CardSpec) -> Image.Image:
 
     # top + bottom wordmark (assets are now trimmed to ink). Reference: ink
     # width ~22% of W, with a ~2% gap above the top and below the bottom.
+    ov = spec.overlay_assets
     wm = scaled_to_width(wordmark, w * 0.22)
     wm_cx = (w - wm.width) / 2
     gap = round(h * 0.02)
-    img = paste_alpha(img, wm, (wm_cx, gap))                    # top: ink top at 2%
+    img = place(img, wm, (wm_cx, gap), ov)                      # top: ink top at 2%
     foot_y = h - gap - wm.height                                # bottom: ink bottom at 98%
-    img = paste_alpha(img, wm, (wm_cx, foot_y))
+    img = place(img, wm, (wm_cx, foot_y), ov)
 
     # faint center watermark
     if spec.watermark:
@@ -241,7 +272,7 @@ def generate_card(spec: CardSpec) -> Image.Image:
 
     # top-right pixel chevron mark (reference ink ~5.5%, right edge ~96.9%)
     cm = scaled_to_width(mark, w * 0.055)
-    img = paste_alpha(img, cm, (round(w * 0.969) - cm.width, round(h * 0.03)))
+    img = place(img, cm, (round(w * 0.969) - cm.width, round(h * 0.03)), ov)
 
     # headline, bottom-left, above the footer wordmark — FIXED size, wraps
     overlay = Image.new("RGBA", spec.size, (0, 0, 0, 0))
@@ -288,6 +319,8 @@ def main():
                     help="Stretch headline lines to full width (default: left-aligned)")
     ap.add_argument("--wordmark", default=os.path.join(ASSET_DIR, "wordmark-white.png"))
     ap.add_argument("--mark", default=os.path.join(ASSET_DIR, "mark-white.png"))
+    ap.add_argument("--overlay", action="store_true",
+                    help="Blend wordmark/mark into the photo (Overlay blend mode)")
     ap.add_argument("--out", default="out/card.png")
     args = ap.parse_args()
 
@@ -298,6 +331,7 @@ def main():
         watermark=not args.no_watermark, weight=args.weight,
         wordmark_path=args.wordmark, mark_path=args.mark,
         headline_size=args.headline_size, justify=args.justify,
+        overlay_assets=args.overlay,
     )
     img = generate_card(spec)
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
