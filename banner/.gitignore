@@ -1,3 +1,4 @@
-out/
-__pycache__/
 *.pyc
+__pycache__/
+_assets_*/
+out/
