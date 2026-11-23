@@ -60,13 +60,18 @@ def hex_to_rgb(v):
 # --- image helpers ---------------------------------------------------------
 
 def cover_fit(img, size):
+    from PIL import ImageFilter
     tw, th = size
     iw, ih = img.size
     scale = max(tw / iw, th / ih)
     nw, nh = round(iw * scale), round(ih * scale)
     img = img.resize((nw, nh), Image.LANCZOS)
     left, top = (nw - tw) // 2, (nh - th) // 2
-    return img.crop((left, top, left + tw, top + th))
+    img = img.crop((left, top, left + tw, top + th))
+    # counteract upscale softness when the source is smaller than the canvas
+    if scale > 1.05:
+        img = img.filter(ImageFilter.UnsharpMask(radius=2.0, percent=80, threshold=2))
+    return img
 
 
 def bottom_scrim(size, bottom_frac=0.60, bottom_strength=0.96,
@@ -224,7 +229,7 @@ def fit_headline(draw, text, max_w, max_h, size, weight="black", min_size=22):
 class CardSpec:
     image: str
     headline: str
-    size: tuple = (1080, 1350)
+    size: tuple = (1440, 1800)
     grayscale: bool = False
     darken: float = 0.0
     color: tuple = (255, 255, 255)
@@ -307,7 +312,7 @@ def main():
     ap = argparse.ArgumentParser(description="Generate HAYTSEGHAKRON-style news cards.")
     ap.add_argument("--image", required=True, help="Background photo")
     ap.add_argument("--headline", required=True, help="Bottom headline (auto-uppercased)")
-    ap.add_argument("--size", default="1080x1350", help="WxH, default 1080x1350 (4:5)")
+    ap.add_argument("--size", default="1440x1800", help="WxH, default 1440x1800 (4:5)")
     ap.add_argument("--grayscale", action="store_true")
     ap.add_argument("--darken", type=float, default=0.0, help="Darken photo 0..1")
     ap.add_argument("--color", default="#ffffff", help="Tint for wordmark/mark/text")
