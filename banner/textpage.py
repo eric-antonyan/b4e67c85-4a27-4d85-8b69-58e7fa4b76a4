@@ -56,7 +56,7 @@ class TextPageSpec:
     image: str
     heading: str
     paragraphs: list          # list of (style, text); style in {"body","emphasis"}
-    size: tuple = (2160, 2700)
+    size: tuple = (1440, 1800)
     grayscale: bool = True
     darken: float = 0.74
     color: tuple = (255, 255, 255)
@@ -167,7 +167,7 @@ def main():
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--body", help="Body text; paragraphs split on blank lines")
     src.add_argument("--body-file", help="File with the body text")
-    ap.add_argument("--size", default="2160x2700")
+    ap.add_argument("--size", default="1440x1800")
     ap.add_argument("--darken", type=float, default=0.74)
     ap.add_argument("--no-grayscale", action="store_true")
     ap.add_argument("--justify", action="store_true",
