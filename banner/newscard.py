@@ -229,7 +229,7 @@ def fit_headline(draw, text, max_w, max_h, size, weight="black", min_size=22):
 class CardSpec:
     image: str
     headline: str
-    size: tuple = (1440, 1800)
+    size: tuple = (2160, 2700)
     grayscale: bool = False
     darken: float = 0.0
     color: tuple = (255, 255, 255)
@@ -312,7 +312,7 @@ def main():
     ap = argparse.ArgumentParser(description="Generate HAYTSEGHAKRON-style news cards.")
     ap.add_argument("--image", required=True, help="Background photo")
     ap.add_argument("--headline", required=True, help="Bottom headline (auto-uppercased)")
-    ap.add_argument("--size", default="1440x1800", help="WxH, default 1440x1800 (4:5)")
+    ap.add_argument("--size", default="2160x2700", help="WxH, default 2160x2700 (4:5)")
     ap.add_argument("--grayscale", action="store_true")
     ap.add_argument("--darken", type=float, default=0.0, help="Darken photo 0..1")
     ap.add_argument("--color", default="#ffffff", help="Tint for wordmark/mark/text")

@@ -35,7 +35,7 @@ def main():
     src.add_argument("--body-file", help="File with the page 2 body text")
 
     ap.add_argument("--out-dir", default="out/post", help="Output folder (default out/post)")
-    ap.add_argument("--size", default="1440x1800", help="WxH, default 1440x1800 (4:5)")
+    ap.add_argument("--size", default="2160x2700", help="WxH, default 2160x2700 (4:5)")
     ap.add_argument("--color", default="#ffffff", help="Brand/text tint")
 
     # page 1
